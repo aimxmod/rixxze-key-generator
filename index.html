@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d18">
+  <title>RixXze • Lua Key Generator</title>
+  <style>
+    :root{color-scheme:dark;--bg:#090d18;--panel:#111827;--line:#263247;--muted:#93a4bb;--text:#edf3ff;--accent:#69e0c0;--bad:#ff7b86}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 50% 0%,#172b3a 0,transparent 55%),var(--bg);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}
+    .card{width:min(100%,440px);border:1px solid var(--line);border-radius:22px;background:linear-gradient(160deg,#151f30,#0e1421);padding:26px;box-shadow:0 24px 80px #0008}
+    .brand{display:flex;align-items:center;justify-content:space-between;font-weight:800;letter-spacing:.13em;font-size:13px;color:var(--accent)}
+    .pill{font-size:11px;letter-spacing:0;border:1px solid #326b61;border-radius:99px;padding:4px 9px;color:var(--accent)}
+    h1{font-size:28px;line-height:1.15;margin:28px 0 8px;text-align:center}
+    .sub{text-align:center;color:var(--muted);font-size:13px;margin:0 0 25px}
+    label{display:block;font-size:13px;font-weight:650;margin:0 0 8px}
+    input{width:100%;padding:14px 13px;border:1px solid var(--line);border-radius:12px;background:#0a1120;color:var(--text);font:inherit;outline:none}
+    input:focus{border-color:var(--accent);box-shadow:0 0 0 3px #69e0c022}
+    button{width:100%;border:0;border-radius:12px;padding:14px 16px;font:700 14px system-ui;cursor:pointer;margin-top:13px;background:var(--accent);color:#082018}
+    button:disabled{opacity:.55;cursor:wait}
+    .result{display:none;margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:14px;background:#0a1120}
+    .result small{display:block;color:var(--muted);margin-bottom:8px}
+    .key{font:700 17px ui-monospace,monospace;overflow-wrap:anywhere;letter-spacing:.04em}
+    .copy{background:#202d42;color:var(--text);margin-top:12px}
+    .message{min-height:24px;margin:13px 0 0;font-size:13px;color:var(--muted);text-align:center}
+    .message.error{color:var(--bad)}.message.ok{color:var(--accent)}
+    footer{text-align:center;color:#687991;font-size:11px;margin-top:24px}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="brand"><span>RIXXZE KEY SYSTEM</span><span class="pill">SECURE</span></div>
+    <h1>Lua Key Generator</h1>
+    <p class="sub">Masukkan ID transaksi Ko-fi untuk mengambil lisensi Lua.</p>
+    <form id="form">
+      <label for="transactionId">ID Transaksi</label>
+      <input id="transactionId" name="transactionId" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Masukkan ID transaksi Ko-fi" required maxlength="120">
+      <button id="submit" type="submit">VERIFIKASI &amp; GENERATE KEY</button>
+    </form>
+    <section class="result" id="result" aria-live="polite">
+      <small>KEY LUA BERHASIL DIBUAT</small>
+      <div class="key" id="key"></div>
+      <button class="copy" id="copy" type="button">COPY KEY</button>
+    </section>
+    <p class="message" id="message" role="status"></p>
+    <footer>Powered by RixXze</footer>
+  </main>
+  <script src="./config.js"></script>
+  <script>
+    const form = document.getElementById('form');
+    const input = document.getElementById('transactionId');
+    const submit = document.getElementById('submit');
+    const message = document.getElementById('message');
+    const result = document.getElementById('result');
+    const keyEl = document.getElementById('key');
+    const copy = document.getElementById('copy');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const transactionId = input.value.trim();
+      result.style.display = 'none';
+      message.className = 'message';
+      message.textContent = '';
+      if (!transactionId) return;
+      submit.disabled = true;
+      submit.textContent = 'MEMERIKSA TRANSAKSI...';
+      try {
+        const endpoint = window.RIXXZE_CONFIG && window.RIXXZE_CONFIG.apiUrl;
+        if (!endpoint || endpoint.includes('GANTI_DENGAN')) {
+          throw new Error('Website belum dikonfigurasi. API URL Cloud Function belum diisi.');
+        }
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({transactionId})
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.ok) throw new Error(data.message || 'Transaksi tidak dapat diverifikasi.');
+        keyEl.textContent = data.key;
+        result.style.display = 'block';
+        message.className = 'message ok';
+        message.textContent = `Berhasil. Masa aktif ${data.durationDays} hari • Berakhir ${data.date_expired}`;
+      } catch (error) {
+        message.className = 'message error';
+        message.textContent = error.message || 'Terjadi kesalahan. Coba lagi.';
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'VERIFIKASI & GENERATE KEY';
+      }
+    });
+
+    copy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(keyEl.textContent);
+        copy.textContent = 'KEY TERSALIN';
+      } catch {
+        message.className = 'message error';
+        message.textContent = 'Gagal menyalin otomatis. Tekan lama key lalu pilih Salin.';
+      }
+    });
+  </script>
+</body>
+</html>
